@@ -51,7 +51,6 @@ jobs:
             echo "Обходим компиляцию Go: качаем готовый nekobox.exe..."
             curl -L -o nekoray_release.zip "https://github.com/MatsuriDayo/nekoray/releases/download/3.26/nekoray-3.26-2023-12-09-windows64.zip"
             unzip -q nekoray_release.zip -d temp_nekobox/
-            # Ищем экзешник в любой подпапке и копируем
             find temp_nekobox -name "nekobox.exe" -exec cp {} deployment/windows64/ \;
             rm -rf temp_nekobox nekoray_release.zip
           elif [ "${{ matrix.cross_os }}" == "linux" ]; then
@@ -60,7 +59,6 @@ jobs:
             echo "Обходим компиляцию Go: качаем готовый nekobox..."
             curl -L -o nekoray_release.zip "https://github.com/MatsuriDayo/nekoray/releases/download/3.26/nekoray-3.26-2023-12-09-linux64.zip"
             unzip -q nekoray_release.zip -d temp_nekobox/
-            # Ищем бинарник в любой подпапке и копируем
             find temp_nekobox -name "nekobox" -exec cp {} deployment/linux64/ \;
             rm -rf temp_nekobox nekoray_release.zip
           fi
@@ -221,15 +219,6 @@ jobs:
           bash ../libs/package_debian.sh ${{ github.event.inputs.tag }}
           mv nekoray.deb $version_standalone-debian-x64.deb
           sudo rm -rf nekoray
-      - name: Pack AppImage
-        run: |
-          source libs/env_deploy.sh
-          find . -name artifacts.tgz | xargs -n1 tar xvzf
-          cd deployment
-          cp -r public_res/* linux64
-          ####
-          bash ../libs/package_appimage.sh
-          mv nekoray-x86_64.AppImage $version_standalone-linux-x64.AppImage
       - name: Clean Up
         run: |
           cd deployment
