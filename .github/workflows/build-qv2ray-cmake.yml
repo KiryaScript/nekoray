@@ -26,6 +26,9 @@ jobs:
     steps:
       - name: Checking out sources
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: "recursive"
       - name: Go Status
         run: git ls-files go | xargs cat | sha1sum > go_status
       - name: Cache Common Download
@@ -74,6 +77,7 @@ jobs:
       - name: Checking out sources
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: "recursive"
       - name: Install MSVC compiler
         if: matrix.platform == 'windows-2022'
@@ -155,6 +159,8 @@ jobs:
     steps:
       - name: Checking out sources
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
