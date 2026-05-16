@@ -80,7 +80,7 @@ jobs:
           - platform: windows-2022
             arch: x64
             qt_version: "6.5"
-          - platform: ubuntu-20.04
+          - platform: ubuntu-latest
             arch: x64
             qt_version: "5.12"
       fail-fast: false
@@ -116,11 +116,11 @@ jobs:
           key: DepsCache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('libs/build_deps_*.sh') }}-Qt${{ matrix.qt_version }}
       - name: Build Dependencies
         shell: bash
-        if: steps.cache-deps.outputs.cache-hit != 'true' && matrix.platform != 'ubuntu-20.04'
+        if: steps.cache-deps.outputs.cache-hit != 'true' && matrix.platform != 'ubuntu-latest'
         run: ./libs/build_deps_all.sh
       - name: Build Dependencies (Docker)
         shell: bash
-        if: steps.cache-deps.outputs.cache-hit != 'true' && matrix.platform == 'ubuntu-20.04'
+        if: steps.cache-deps.outputs.cache-hit != 'true' && matrix.platform == 'ubuntu-latest'
         run: |
           docker run --rm \
             -v $PWD:/nekoray \
@@ -144,7 +144,7 @@ jobs:
           ./libs/deploy_windows64.sh
       - name: Linux - Generate MakeFile and Build
         shell: bash
-        if: matrix.platform == 'ubuntu-20.04'
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           docker run --rm \
             -v $PWD:/nekoray \
