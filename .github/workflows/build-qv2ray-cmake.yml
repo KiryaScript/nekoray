@@ -37,19 +37,31 @@ jobs:
         with:
           path: artifacts.tgz
           key: CommonCache-${{ matrix.cross_os }}-${{ matrix.cross_arch }}-${{ hashFiles('libs/*.sh', 'go_status', '*.txt') }}
-      - name: Install Golang
-        if: steps.cache-common.outputs.cache-hit != 'true'
-        uses: actions/setup-go@v5
-        with:
-          go-version: ^1.21
       - name: Build golang parts
         if: steps.cache-common.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          [ ${{ matrix.cross_os }} == public_res ] || ./libs/get_source.sh
-          [ ${{ matrix.cross_os }} == public_res ] || GOOS=${{ matrix.cross_os }} GOARCH=${{ matrix.cross_arch }} ./libs/build_go.sh
-          [ ${{ matrix.cross_os }} == public_res ] || exit 0
-          ./libs/build_public_res.sh
+          mkdir -p deployment
+          if [ "${{ matrix.cross_os }}" == "public_res" ]; then
+            # Качаем общие ресурсы (geoip и geosite)
+            ./libs/build_public_res.sh
+          elif [ "${{ matrix.cross_os }}" == "windows" ]; then
+            # ХАК: берем готовое ядро nekobox для Windows
+            mkdir -p deployment/windows64
+            echo "Обходим компиляцию Go: качаем готовый nekobox.exe..."
+            curl -L -o nekoray_release.zip "https://github.com/MatsuriDayo/nekoray/releases/download/3.26/nekoray-3.26-2023-12-09-windows64.zip"
+            unzip -q nekoray_release.zip
+            cp nekoray/nekobox.exe deployment/windows64/
+            rm -rf nekoray nekoray_release.zip
+          elif [ "${{ matrix.cross_os }}" == "linux" ]; then
+            # ХАК: берем готовое ядро nekobox для Linux
+            mkdir -p deployment/linux64
+            echo "Обходим компиляцию Go: качаем готовый nekobox..."
+            curl -L -o nekoray_release.zip "https://github.com/MatsuriDayo/nekoray/releases/download/3.26/nekoray-3.26-2023-12-09-linux64.zip"
+            unzip -q nekoray_release.zip
+            cp nekoray/nekobox deployment/linux64/
+            rm -rf nekoray nekoray_release.zip
+          fi
       - name: Tar files
         if: steps.cache-common.outputs.cache-hit != 'true'
         run: tar czvf artifacts.tgz ./deployment
@@ -58,6 +70,7 @@ jobs:
         with:
           name: NekoRay-${{ github.sha }}-Common-${{ matrix.cross_os }}-${{ matrix.cross_arch }}
           path: artifacts.tgz
+
   build-cpp:
     strategy:
       matrix:
@@ -83,17 +96,14 @@ jobs:
         if: matrix.platform == 'windows-2022'
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          # 14.1 is for vs2017, 14.2 is vs2019, following the upstream vcpkg build from Qv2ray-deps repo
           toolset: 14.2
           arch: ${{ matrix.arch }}
-      # ========================================================================================================= Qt Install
       - name: Windows - Download Custom Qt ${{ matrix.qt_version }} SDK
         shell: bash
         if: matrix.platform == 'windows-2022'
         env:
           DL_QT_VER: ${{ matrix.qt_version }}
         run: bash ./libs/download_qtsdk_win.sh
-      # ========================================================================================================= 编译与 Qt 无关的依赖
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v3
       - name: Cache Download
@@ -115,7 +125,6 @@ jobs:
             -w /nekoray \
             ghcr.io/matsuridayo/debian10-qt5:20230131 \
             bash -c "./libs/build_deps_all.sh"
-      # ========================================================================================================= Generate MakeFile and Build
       - name: Windows - Generate MakeFile and Build
         shell: bash
         if: matrix.platform == 'windows-2022'
@@ -140,7 +149,6 @@ jobs:
             -w /nekoray \
             ghcr.io/matsuridayo/debian10-qt5:20230131 \
             bash -c "mkdir build && pushd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Release .. && ninja && popd &&./libs/deploy_linux64.sh"
-      # ========================================================================================================= Deployments
       - name: Tar files
         shell: bash
         run: tar czvf artifacts.tgz ./deployment
@@ -149,6 +157,7 @@ jobs:
         with:
           name: NekoRay-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.arch }}-Qt${{ matrix.qt_version }}
           path: artifacts.tgz
+
   publish:
     name: Pack & Publish Release
     if: github.event.inputs.artifact-pack != 'y'
@@ -177,7 +186,7 @@ jobs:
           cp -r public_res/* windows64
           
           # ========================================================
-          # Скачиваем свежие ядра Xray и Hysteria 2 напрямую в папки
+          # Вшиваем свежие Xray и Hysteria 2
           # ========================================================
           curl -L -o xray-win.zip "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-windows-64.zip"
           unzip -q xray-win.zip xray.exe -d windows64/
