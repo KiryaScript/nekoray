@@ -46,21 +46,23 @@ jobs:
             # Качаем общие ресурсы (geoip и geosite)
             ./libs/build_public_res.sh
           elif [ "${{ matrix.cross_os }}" == "windows" ]; then
-            # ХАК: берем готовое ядро nekobox для Windows
             mkdir -p deployment/windows64
+            mkdir -p temp_nekobox
             echo "Обходим компиляцию Go: качаем готовый nekobox.exe..."
             curl -L -o nekoray_release.zip "https://github.com/MatsuriDayo/nekoray/releases/download/3.26/nekoray-3.26-2023-12-09-windows64.zip"
-            unzip -q nekoray_release.zip
-            cp nekoray/nekobox.exe deployment/windows64/
-            rm -rf nekoray nekoray_release.zip
+            unzip -q nekoray_release.zip -d temp_nekobox/
+            # Ищем экзешник в любой подпапке и копируем
+            find temp_nekobox -name "nekobox.exe" -exec cp {} deployment/windows64/ \;
+            rm -rf temp_nekobox nekoray_release.zip
           elif [ "${{ matrix.cross_os }}" == "linux" ]; then
-            # ХАК: берем готовое ядро nekobox для Linux
             mkdir -p deployment/linux64
+            mkdir -p temp_nekobox
             echo "Обходим компиляцию Go: качаем готовый nekobox..."
             curl -L -o nekoray_release.zip "https://github.com/MatsuriDayo/nekoray/releases/download/3.26/nekoray-3.26-2023-12-09-linux64.zip"
-            unzip -q nekoray_release.zip
-            cp nekoray/nekobox deployment/linux64/
-            rm -rf nekoray nekoray_release.zip
+            unzip -q nekoray_release.zip -d temp_nekobox/
+            # Ищем бинарник в любой подпапке и копируем
+            find temp_nekobox -name "nekobox" -exec cp {} deployment/linux64/ \;
+            rm -rf temp_nekobox nekoray_release.zip
           fi
       - name: Tar files
         if: steps.cache-common.outputs.cache-hit != 'true'
