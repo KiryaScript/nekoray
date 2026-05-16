@@ -25,18 +25,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checking out sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Go Status
         run: git ls-files go | xargs cat | sha1sum > go_status
       - name: Cache Common Download
         id: cache-common
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: artifacts.tgz
           key: CommonCache-${{ matrix.cross_os }}-${{ matrix.cross_arch }}-${{ hashFiles('libs/*.sh', 'go_status', '*.txt') }}
       - name: Install Golang
         if: steps.cache-common.outputs.cache-hit != 'true'
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ^1.21
       - name: Build golang parts
@@ -51,7 +51,7 @@ jobs:
         if: steps.cache-common.outputs.cache-hit != 'true'
         run: tar czvf artifacts.tgz ./deployment
       - name: Uploading Artifact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: NekoRay-${{ github.sha }}-Common-${{ matrix.cross_os }}-${{ matrix.cross_arch }}
           path: artifacts.tgz
@@ -72,7 +72,7 @@ jobs:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
       - name: Checking out sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
       - name: Install MSVC compiler
@@ -94,7 +94,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v3
       - name: Cache Download
         id: cache-deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: libs/deps
           key: DepsCache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('libs/build_deps_*.sh') }}-Qt${{ matrix.qt_version }}
@@ -141,7 +141,7 @@ jobs:
         shell: bash
         run: tar czvf artifacts.tgz ./deployment
       - name: Uploading Artifact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: NekoRay-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.arch }}-Qt${{ matrix.qt_version }}
           path: artifacts.tgz
@@ -154,9 +154,9 @@ jobs:
       - build-go
     steps:
       - name: Checking out sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: download-artifact
       - name: Pack
@@ -169,6 +169,22 @@ jobs:
           cd deployment
           cp -r public_res/* linux64
           cp -r public_res/* windows64
+          
+          # ========================================================
+          # Скачиваем свежие ядра Xray и Hysteria 2 напрямую в папки
+          # ========================================================
+          curl -L -o xray-win.zip "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-windows-64.zip"
+          unzip -q xray-win.zip xray.exe -d windows64/
+          curl -L -o windows64/hysteria.exe "https://github.com/apernet/hysteria/releases/latest/download/hysteria-windows-amd64.exe"
+          
+          curl -L -o xray-linux.zip "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip"
+          unzip -q xray-linux.zip xray -d linux64/
+          curl -L -o linux64/hysteria "https://github.com/apernet/hysteria/releases/latest/download/hysteria-linux-amd64"
+          
+          chmod +x linux64/xray linux64/hysteria
+          rm -f xray-win.zip xray-linux.zip
+          # ========================================================
+          
           rm -rf public_res *.pdb
           ####
           mv linux64 nekoray
@@ -205,7 +221,7 @@ jobs:
           rm -rf public_res
           rm -rf *.pdb
       - name: Uploading Artifact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: Deployment-${{ github.sha }}
           path: deployment
