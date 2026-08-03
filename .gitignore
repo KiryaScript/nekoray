@@ -3,37 +3,33 @@
 *.o
 *.a
 *.so
+*.dylib
 *.exe
-*.dll
 *.out
 
-# Go cache and build directories
+# Go cache and modules
 go/pkg/mod/
-go/build/
-bin/
-target/
+go.sum
+*.mod
+*.mod.backup
 
-# Go test and coverage
-*.test
-*.prof
-coverage.txt
-cover.out
+# Build directories
+build/
+dist/
+target/
 
 # Dependencies
 vendor/
-node_modules/
 
-# Logs and temp files
+# Logs
 *.log
+
+# Temporary files
 *.tmp
 *.swp
+*.swo
 
-# Environment
-.env
-.env.local
-.env.*
-
-# Editors
+# IDE files
 .vscode/
 .idea/
 *.swp
@@ -48,11 +44,8 @@ coverage/
 htmlcov/
 .coverage
 
-# Build artifacts from other tools
-dist/
-build/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Environment
+.env
+.env.local
+*.env.*
 ```
