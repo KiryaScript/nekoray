@@ -1,87 +1,45 @@
-# This file is used to ignore files which are generated
-# ----------------------------------------------------------------------------
-
-*~
-*.autosave
-*.a
-*.core
-*.moc
+```
+# Build artifacts
 *.o
 *.obj
-*.orig
-*.rej
-*.so
-*.so.*
-*_pch.h.cpp
-*_resource.rc
-.#*
-*.*#
-core
-!core/
-tags
-.DS_Store
-.directory
-*.debug
-/Makefile*
-*.prl
-*.app
-moc_*.cpp
-ui_*.h
-qrc_*.cpp
-Thumbs.db
-*.res
-/.qmake.cache
-/.qmake.stash
-
-# qtcreator generated files
-*.pro.user*
-
-# xemacs temporary files
-*.flc
-
-# Vim temporary files
-.*.swp
-
-# Visual Studio generated files
-*.ib_pdb_index
-*.idb
-*.ilk
-*.pdb
-*.sln
-*.suo
-*.vcproj
-*vcproj.*.*.user
-*.ncb
-*.sdf
-*.opensdf
-*.vcxproj
-*vcxproj.*
-
-# MinGW generated files
-*.Debug
-*.Release
-
-# Python byte code
-*.pyc
-
-# Binaries
-# --------
-*.dll
 *.exe
+*.dll
+*.so
+*.a
+*.out
 
-# Custom
-/nekoray
-/build
-CMakeLists.txt.user*
-/cmake-build-*
-/build-*
-.vscode
-.idea
+# Dependencies
+venv/
+.venv/
+__pycache__/
+*.egg-info/
+node_modules/
 
-# Deploy
-/deployment
-/neko*.sh
-/qtsdk
+# CMake build directory
+build/
+cmake-build-*/
 
-.vs
-out
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# OS generated files
+.DS_Store
+Thumbs.db
+```
