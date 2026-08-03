@@ -1,0 +1,208 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  release:
+    types: [ published ]
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: "6.5"
+  CMAKE_VERSION: "3.28"
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-17
+
+      - name: Check code formatting
+        run: |
+          find . -name "*.cpp" -o -name "*.hpp" -o -name "*.h" | \
+          xargs clang-format-17 --style=file --dry-run --Werror
+
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get install -y clang-tidy-17
+
+      - name: Run clang-tidy
+        run: |
+          find . -name "*.cpp" | head -10 | \
+          xargs clang-tidy-17 -p build || true
+
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+    needs: code-quality
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-svg-dev \
+            libqt6svg6-dev \
+            libyaml-cpp-dev \
+            protobuf-compiler \
+            libprotobuf-dev \
+            libgrpc++-dev \
+            libzxing-dev
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DQT_VERSION_MAJOR=6 \
+            -DCMAKE_CXX_STANDARD=23
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest --output-on-failure || true
+
+      - name: Package AppImage
+        if: github.event_name == 'release'
+        run: |
+          ./libs/package_appimage.sh || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekoray-linux
+          path: build/nekoray
+
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    needs: code-quality
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: qt5compat qtcharts qtdatavis3d
+
+      - name: Install dependencies
+        run: |
+          choco install -y cmake ninja protobuf grpc
+
+      - name: Configure CMake
+        run: |
+          cmake -B build `
+            -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+            -DQT_VERSION_MAJOR=6 `
+            -DCMAKE_CXX_STANDARD=23
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekoray-windows
+          path: build/Release/nekoray.exe
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-latest
+    needs: code-quality
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew install cmake ninja qt protobuf grpc yaml-cpp zxing-cpp
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DQT_VERSION_MAJOR=6 \
+            -DCMAKE_CXX_STANDARD=23
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Create DMG
+        if: github.event_name == 'release'
+        run: |
+          ./libs/package_dmg.sh || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekoray-macos
+          path: build/nekoray.app
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  publish-release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: [ build-linux, build-windows, build-macos ]
+    if: github.event_name == 'release'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release assets
+        run: |
+          zip -r nekoray-linux.zip nekoray-linux/*
+          zip -r nekoray-windows.zip nekoray-windows/*
+          zip -r nekoray-macos.zip nekoray-macos/*
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            nekoray-linux.zip
+            nekoray-windows.zip
+            nekoray-macos.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

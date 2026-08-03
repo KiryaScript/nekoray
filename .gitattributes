@@ -1,0 +1,54 @@
+# Git attributes file for consistent line endings and binary file handling
+# https://git-scm.com/docs/gitattributes
+
+# Set default behavior to automatically handle line endings on Windows
+* text=auto eol=lf
+
+# Binary files - ensure they are treated as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.svg binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.qrc binary
+*.qm binary
+*.ts linguist-generated
+
+# Build artifacts
+*.o binary
+*.obj binary
+*.a binary
+*.so binary
+*.dll binary
+*.exe binary
+*.pdb binary
+
+# Qt generated files
+moc_*.cpp linguist-generated
+ui_*.h linguist-generated
+qrc_*.cpp linguist-generated
+
+# Documentation
+*.md text
+*.txt text
+
+# Source code
+*.cpp text
+*.hpp text
+*.h text
+*.c text
+*.cxx text
+
+# Config files
+*.json text
+*.yaml text
+*.yml text
+*.toml text
+*.ini text
+*.cfg text

@@ -58,12 +58,6 @@ int main(int argc, char* argv[]) {
 #endif
 
     // pre-init QApplication
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0) && QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
-    QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
-#endif
-#if QT_VERSION >= QT_VERSION_CHECK(5, 7, 0)
-    QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
-#endif
     QApplication::setQuitOnLastWindowClosed(false);
     auto preQApp = new QApplication(argc, argv);
 
@@ -158,6 +152,7 @@ int main(int argc, char* argv[]) {
     if (QIcon::themeName().isEmpty()) {
         QIcon::setThemeName("breeze");
     }
+    QIcon::setFallbackThemeName("breeze");
 
     // Load coreType
     auto coreLoaded = ReadFileText("groups/coreType");
