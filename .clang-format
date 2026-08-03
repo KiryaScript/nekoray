@@ -1,5 +1,6 @@
 # ClangFormat configuration for C++ code style
-# Based on LLVM style with modern C++23 conventions
+# Based on LLVM style with modern C++ conventions
+# Note: C++ standard is defined in CMakeLists.txt (C++23)
 
 BasedOnStyle: LLVM
 IndentWidth: 4
@@ -66,7 +67,6 @@ IncludeCategories:
 IncludeIsMainRegex: '([-_](test|unittest))?$'
 IndentCaseLabels: true
 IndentPPDirectives: None
-IndentRequiresClause: true
 IndentWrappedFunctionNames: false
 JavaScriptQuotes: Leave
 JavaScriptWrapImports: true
@@ -93,7 +93,6 @@ SortIncludes: CaseInsensitive
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: false
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: false
 SpaceBeforeCtorInitializerColon: true
