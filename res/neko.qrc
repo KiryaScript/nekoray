@@ -13,13 +13,30 @@
         <file>icon/material/swap-vertical.svg</file>
         <file>icon/material/delete.svg</file>
         <file>icon/material/swap-horizontal.svg</file>
+        <!-- Modern Icons -->
+        <file>icon/modern/power.svg</file>
+        <file>icon/modern/settings.svg</file>
+        <file>icon/modern/folder.svg</file>
+        <file>icon/modern/download.svg</file>
+        <file>icon/modern/upload.svg</file>
+        <file>icon/modern/wifi.svg</file>
+        <file>icon/modern/shield.svg</file>
+        <file>icon/modern/globe.svg</file>
+        <file>icon/modern/rocket.svg</file>
     </qresource>
     <qresource prefix="/neko">
         <file alias="nekobox.png">public/nekobox.png</file>
         <file alias="nekoray.png">public/nekoray.png</file>
         <file>neko.css</file>
+        <file>modern_theme.css</file>
         <file>vpn/vpn-run-root.sh</file>
         <file>vpn/sing-box-vpn.json</file>
         <file>dashboard-notice.html</file>
+        <file>backgrounds/default_dark.png</file>
+    </qresource>
+    <qresource prefix="/themes/modern">
+        <file>dark.css</file>
+        <file>light.css</file>
+        <file>amoled.css</file>
     </qresource>
 </RCC>
