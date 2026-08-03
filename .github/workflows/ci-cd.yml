@@ -86,8 +86,7 @@ jobs:
           export GOARCH=amd64
           go build -v -o ../../../bin/linux64/nekoray_core \
             -trimpath \
-            -ldflags "-w -s -X github.com/matsuridayo/libneko/neko_common.Version_v2ray=$(git -C ../../../Xray-core log --pretty=format:'%h' -n 1 2>/dev/null || echo 'unknown') \
-                     -X github.com/matsuridayo/libneko/neko_common.Version_neko=${{ steps.version.outputs.core_version }}"
+            -ldflags "-w -s"
           
       - name: Build nekobox_core with hysteria2 support (Linux amd64)
         run: |
@@ -97,8 +96,8 @@ jobs:
           export GOARCH=amd64
           go build -v -o ../../../bin/linux64/nekobox_core \
             -trimpath \
-            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
-            -ldflags "-w -s -X github.com/matsuridayo/libneko/neko_common.Version_neko=${{ steps.version.outputs.core_version }}"
+            -tags "with_hysteria2" \
+            -ldflags "-w -s"
 
       - name: Build nekoray_core (Windows amd64)
         run: |
@@ -118,7 +117,7 @@ jobs:
           export GOARCH=amd64
           go build -v -o ../../../bin/windows64/nekobox_core.exe \
             -trimpath \
-            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -tags "with_hysteria2" \
             -ldflags "-w -s"
 
       - name: Build nekoray_core (macOS universal)
@@ -143,12 +142,12 @@ jobs:
           export GOARCH=arm64
           go build -v -o ../../../bin/macos-arm64/nekobox_core \
             -trimpath \
-            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -tags "with_hysteria2" \
             -ldflags "-w -s"
           export GOARCH=amd64
           go build -v -o ../../../bin/macos-amd64/nekobox_core \
             -trimpath \
-            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -tags "with_hysteria2" \
             -ldflags "-w -s"
 
       - name: Upload cores artifact
