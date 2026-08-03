@@ -1,8 +1,6 @@
 module nekoray_core
 
-go 1.21
-
-toolchain go1.21.0
+go 1.19
 
 require (
 	github.com/jsimonetti/rtnetlink v1.2.2
@@ -67,8 +65,8 @@ require (
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
-replace github.com/matsuridayo/libneko v1.0.0 => ../../../../libneko
+replace github.com/matsuridayo/libneko v1.0.0 => ../../libneko
 
 replace grpc_server v1.0.0 => ../../grpc_server
 
-replace github.com/xtls/xray-core => ../../../../Xray-core
+replace github.com/xtls/xray-core => ../../Xray-core

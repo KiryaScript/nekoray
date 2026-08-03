@@ -95,13 +95,13 @@ require (
 
 replace grpc_server => ../../grpc_server
 
-replace github.com/matsuridayo/libneko => ../../../../libneko
+replace github.com/matsuridayo/libneko => ../../libneko
 
-replace github.com/matsuridayo/sing-box-extra => ../../../../sing-box-extra
+replace github.com/matsuridayo/sing-box-extra => ../../sing-box-extra
 
-replace github.com/sagernet/sing-box => ../../../../sing-box
+replace github.com/sagernet/sing-box => ../../sing-box
 
-replace github.com/sagernet/sing-quic => ../../../../sing-quic
+replace github.com/sagernet/sing-quic => ../../sing-quic
 
 // replace github.com/sagernet/sing => ../../../../sing
 
