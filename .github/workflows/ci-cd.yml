@@ -1,17 +1,29 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - NekoRay 2026
 
 on:
   push:
     branches: [ main, master, develop ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master, develop ]
   release:
     types: [ published ]
+  workflow_dispatch:
+    inputs:
+      build_cores:
+        description: 'Build Go cores (nekoray_core, nekobox_core with hysteria2)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   BUILD_TYPE: Release
-  QT_VERSION: "6.5"
+  QT_VERSION: "6.8"
   CMAKE_VERSION: "3.28"
+  GO_VERSION: "1.23"
 
 jobs:
   code-quality:
@@ -23,26 +35,133 @@ jobs:
       - name: Install clang-format
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-format-17
+          sudo apt-get install -y clang-format-18
 
       - name: Check code formatting
         run: |
           find . -name "*.cpp" -o -name "*.hpp" -o -name "*.h" | \
-          xargs clang-format-17 --style=file --dry-run --Werror
+          xargs clang-format-18 --style=file --dry-run --Werror || exit 1
 
       - name: Install clang-tidy
         run: |
-          sudo apt-get install -y clang-tidy-17
+          sudo apt-get install -y clang-tidy-18
 
       - name: Run clang-tidy
         run: |
-          find . -name "*.cpp" | head -10 | \
-          xargs clang-tidy-17 -p build || true
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cd ..
+          find . -name "*.cpp" ! -path "./3rdparty/*" | head -20 | \
+          xargs clang-tidy-18 -p build || true
+
+  build-go-cores:
+    name: Build Go Cores (Hysteria2 Support)
+    runs-on: ubuntu-latest
+    outputs:
+      core_version: ${{ steps.version.outputs.core_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go/**/go.sum
+
+      - name: Get version info
+        id: version
+        run: |
+          echo "core_version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev-$(date +%Y%m%d)')" >> $GITHUB_OUTPUT
+
+      - name: Build nekoray_core (Linux amd64)
+        run: |
+          cd go/cmd/nekoray_core
+          export CGO_ENABLED=0
+          export GOOS=linux
+          export GOARCH=amd64
+          go build -v -o ../../../bin/linux64/nekoray_core \
+            -trimpath \
+            -ldflags "-w -s -X github.com/matsuridayo/libneko/neko_common.Version_v2ray=$(git -C ../../../Xray-core log --pretty=format:'%h' -n 1 2>/dev/null || echo 'unknown') \
+                     -X github.com/matsuridayo/libneko/neko_common.Version_neko=${{ steps.version.outputs.core_version }}"
+          
+      - name: Build nekobox_core with hysteria2 support (Linux amd64)
+        run: |
+          cd go/cmd/nekobox_core
+          export CGO_ENABLED=0
+          export GOOS=linux
+          export GOARCH=amd64
+          go build -v -o ../../../bin/linux64/nekobox_core \
+            -trimpath \
+            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -ldflags "-w -s -X github.com/matsuridayo/libneko/neko_common.Version_neko=${{ steps.version.outputs.core_version }}"
+
+      - name: Build nekoray_core (Windows amd64)
+        run: |
+          cd go/cmd/nekoray_core
+          export CGO_ENABLED=0
+          export GOOS=windows
+          export GOARCH=amd64
+          go build -v -o ../../../bin/windows64/nekoray_core.exe \
+            -trimpath \
+            -ldflags "-w -s"
+
+      - name: Build nekobox_core with hysteria2 support (Windows amd64)
+        run: |
+          cd go/cmd/nekobox_core
+          export CGO_ENABLED=0
+          export GOOS=windows
+          export GOARCH=amd64
+          go build -v -o ../../../bin/windows64/nekobox_core.exe \
+            -trimpath \
+            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -ldflags "-w -s"
+
+      - name: Build nekoray_core (macOS universal)
+        run: |
+          cd go/cmd/nekoray_core
+          export CGO_ENABLED=0
+          export GOOS=darwin
+          export GOARCH=arm64
+          go build -v -o ../../../bin/macos-arm64/nekoray_core \
+            -trimpath \
+            -ldflags "-w -s"
+          export GOARCH=amd64
+          go build -v -o ../../../bin/macos-amd64/nekoray_core \
+            -trimpath \
+            -ldflags "-w -s"
+
+      - name: Build nekobox_core with hysteria2 support (macOS universal)
+        run: |
+          cd go/cmd/nekobox_core
+          export CGO_ENABLED=0
+          export GOOS=darwin
+          export GOARCH=arm64
+          go build -v -o ../../../bin/macos-arm64/nekobox_core \
+            -trimpath \
+            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -ldflags "-w -s"
+          export GOARCH=amd64
+          go build -v -o ../../../bin/macos-amd64/nekobox_core \
+            -trimpath \
+            -tags "with_clash_api,with_gvisor,with_quic,with_wireguard,with_utls,with_ech,with_hysteria2" \
+            -ldflags "-w -s"
+
+      - name: Upload cores artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nekoray-cores
+          path: bin/
+          retention-days: 30
 
   build-linux:
     name: Build on Linux
     runs-on: ubuntu-latest
-    needs: code-quality
+    needs: [ code-quality, build-go-cores ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,11 +177,21 @@ jobs:
             qt6-base-dev \
             qt6-svg-dev \
             libqt6svg6-dev \
+            qt6-tools-dev \
             libyaml-cpp-dev \
             protobuf-compiler \
             libprotobuf-dev \
             libgrpc++-dev \
-            libzxing-dev
+            libzxing-dev \
+            libfuse2 \
+            appstream \
+            desktop-file-utils
+
+      - name: Download pre-built cores
+        uses: actions/download-artifact@v4
+        with:
+          name: nekoray-cores
+          path: bin/
 
       - name: Configure CMake
         run: |
@@ -70,31 +199,72 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DQT_VERSION_MAJOR=6 \
-            -DCMAKE_CXX_STANDARD=23
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_INSTALL_PREFIX=/usr
 
       - name: Build
-        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel $(nproc)
+
+      - name: Copy cores to build directory
+        run: |
+          mkdir -p build/bin
+          cp bin/linux64/* build/bin/ || true
+          chmod +x build/bin/* || true
 
       - name: Run tests
         run: |
           cd build
           ctest --output-on-failure || true
 
-      - name: Package AppImage
+      - name: Create AppDir structure
         if: github.event_name == 'release'
         run: |
-          ./libs/package_appimage.sh || true
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/share/applications
+          cp build/nekoray AppDir/usr/bin/
+          cp bin/linux64/* AppDir/usr/bin/ || true
+          cp res/nekoray.png AppDir/usr/share/icons/hicolor/256x256/apps/nekoray.png || cp res/public/nekoray.png AppDir/usr/share/icons/hicolor/256x256/apps/nekoray.png || true
+          cat > AppDir/nekoray.desktop << EOF
+          [Desktop Entry]
+          Type=Application
+          Name=NekoRay
+          Comment=Modern VPN/Proxy Client
+          Exec=nekoray
+          Icon=nekoray
+          Categories=Network;Utility;
+          EOF
+          cat > AppDir/AppDir.yml << EOF
+          app-id: moe.nekoray
+          name: NekoRay
+          icon: nekoray
+          version: ${{ github.ref_name }}
+          EOF
+
+      - name: Build AppImage
+        if: github.event_name == 'release'
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            --executable AppDir/usr/bin/nekoray \
+            --desktop-file AppDir/nekoray.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/nekoray.png \
+            --output appimage || ./libs/package_appimage.sh || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nekoray-linux
-          path: build/nekoray
+          path: |
+            build/nekoray
+            build/bin/*
+          retention-days: 30
 
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
-    needs: code-quality
+    needs: [ code-quality, build-go-cores ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -104,14 +274,21 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          modules: qt5compat qtcharts qtdatavis3d
+          modules: qt5compat qtcharts
+          arch: win64_msvc2022_64
+
+      - name: Download pre-built cores
+        uses: actions/download-artifact@v4
+        with:
+          name: nekoray-cores
+          path: bin/
 
       - name: Install dependencies
         run: |
-          choco install -y cmake ninja protobuf grpc
+          choco install -y cmake ninja
 
       - name: Configure CMake
         run: |
@@ -124,16 +301,28 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Copy cores and deploy Qt
+        run: |
+          mkdir build\Release\bin
+          copy bin\windows64\* build\Release\bin\ || echo "No cores found"
+          windeployqt --release --no-compiler-runtime build/Release/nekoray.exe
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nekoray-windows
-          path: build/Release/nekoray.exe
+          path: |
+            build/Release/nekoray.exe
+            build/Release/*.dll
+            build/Release/platforms/
+            build/Release/styles/
+            build/Release/bin/
+          retention-days: 30
 
   build-macos:
     name: Build on macOS
     runs-on: macos-latest
-    needs: code-quality
+    needs: [ code-quality, build-go-cores ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -141,7 +330,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install cmake ninja qt protobuf grpc yaml-cpp zxing-cpp
+          brew install cmake ninja qt@6 protobuf grpc yaml-cpp zxing-cpp create-dmg
+
+      - name: Download pre-built cores
+        uses: actions/download-artifact@v4
+        with:
+          name: nekoray-cores
+          path: bin/
 
       - name: Configure CMake
         run: |
@@ -149,60 +344,119 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DQT_VERSION_MAJOR=6 \
-            -DCMAKE_CXX_STANDARD=23
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Copy cores to app bundle
+        run: |
+          mkdir -p build/nekoray.app/Contents/MacOS/bin
+          cp bin/macos-arm64/* build/nekoray.app/Contents/MacOS/bin/ || true
+          cp bin/macos-amd64/* build/nekoray.app/Contents/MacOS/bin/ || true
+          chmod +x build/nekoray.app/Contents/MacOS/bin/* || true
+
       - name: Create DMG
         if: github.event_name == 'release'
         run: |
-          ./libs/package_dmg.sh || true
+          create-dmg \
+            --volname "NekoRay" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --app-drop-link 400 200 \
+            "NekoRay-${{ github.ref_name }}.dmg" \
+            "build/nekoray.app" || ./libs/package_dmg.sh || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nekoray-macos
           path: build/nekoray.app
+          retention-days: 30
 
   security-scan:
-    name: Security Scan
+    name: Security Scan (CodeQL)
     runs-on: ubuntu-latest
     needs: build-linux
+    permissions:
+      security-events: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run CodeQL
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: cpp
+          languages: cpp,go
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:cpp,go"
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
 
   publish-release:
     name: Publish Release
     runs-on: ubuntu-latest
-    needs: [ build-linux, build-windows, build-macos ]
+    needs: [ build-linux, build-windows, build-macos, security-scan ]
     if: github.event_name == 'release'
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
-      - name: Create release assets
+      - name: Create release packages
         run: |
-          zip -r nekoray-linux.zip nekoray-linux/*
-          zip -r nekoray-windows.zip nekoray-windows/*
-          zip -r nekoray-macos.zip nekoray-macos/*
+          # Linux AppImage
+          if [ -f "nekoray-linux/NekoRay-*.AppImage" ]; then
+            mv nekoray-linux/NekoRay-*.AppImage NekoRay-Linux.AppImage
+          else
+            cd nekoray-linux && zip -r ../NekoRay-Linux.zip * && cd ..
+          fi
+          
+          # Windows
+          cd nekoray-windows && zip -r ../NekoRay-Windows.zip * && cd ..
+          
+          # macOS
+          if [ -f "NekoRay-*.dmg" ]; then
+            mv NekoRay-*.dmg NekoRay-macOS.dmg
+          else
+            cd nekoray-macos && zip -r ../NekoRay-macOS.zip * && cd ..
+          fi
+          
+          # Cores only package
+          cd nekoray-cores && zip -r ../NekoRay-Cores.zip * && cd ..
 
       - name: Upload to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            nekoray-linux.zip
-            nekoray-windows.zip
-            nekoray-macos.zip
+            NekoRay-Linux.*
+            NekoRay-Windows.zip
+            NekoRay-macOS.*
+            NekoRay-Cores.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
