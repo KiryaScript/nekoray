@@ -1,0 +1,14 @@
+/* Modern Theme CSS for NekoRay 2026 */
+/* Combined theme loader */
+
+@import url("qrc:/themes/modern/dark.css");
+
+/* Additional modern enhancements */
+QMainWindow {
+    /* Enable anti-aliasing for smoother edges */
+}
+
+/* Smooth animations hint */
+QWidget {
+    /* Qt animation properties are set in C++ */
+}
