@@ -39,8 +39,13 @@ jobs:
 
       - name: Check code formatting
         run: |
-          find . -name "*.cpp" -o -name "*.hpp" -o -name "*.h" | \
-          xargs clang-format-18 --style=file --dry-run --Werror || exit 1
+          # Проверяем только исходные файлы проекта, исключая 3rdparty
+          find . \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+            ! -path "./3rdparty/*" \
+            ! -path "./go/*" \
+            ! -path "./build/*" \
+            ! -path "./libs/*" \
+            -print0 | xargs -0 clang-format-18 --style=file --dry-run --Werror || exit 1
 
       - name: Install clang-tidy
         run: |
