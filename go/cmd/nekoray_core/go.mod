@@ -4,8 +4,8 @@ go 1.19
 
 require (
 	github.com/jsimonetti/rtnetlink v1.2.2
-	github.com/matsuridayo/libneko v1.0.0 // replaced
-	github.com/xtls/xray-core v1.0.0 // replaced
+	github.com/matsuridayo/libneko v1.0.0
+	github.com/xtls/xray-core v1.260327.0
 	grpc_server v1.0.0
 	kernel.org/pub/linux/libs/security/libcap/cap v1.2.65
 )
@@ -68,5 +68,3 @@ require (
 replace github.com/matsuridayo/libneko v1.0.0 => ../../libneko
 
 replace grpc_server v1.0.0 => ../../grpc_server
-
-replace github.com/xtls/xray-core => ../../Xray-core
